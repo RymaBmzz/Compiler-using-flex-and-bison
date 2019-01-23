@@ -1,0 +1,129 @@
+lexi.l:
+%{
+#include<stdio.h>
+#include<string.h>
+#include "synt.tab.h"
+extern YYSTYPE yylval;
+%}
+chiffre [0-9]
+alphanum [a-zA-Z0-9]
+idf [a-zA-Z]{alphanum}*
+Int 0|[+-]?[1-9]{chiffre}*
+Float [+|-]?{chiffre}{chiffre}*\.{chiffre}{chiffre}*
+chaine \"(.*)\"                         
+comm1 ^[/?\*.*].*[\*/?$]
+comm2 ^[//?.*].*
+%%
+"class" {printf("\nle mot %s est reconnu\n",yytext);
+return class;}
+" " {}
+"Main" {printf("\nle mot %s est reconnu\n",yytext);
+return Main;}
+"{" {printf("\nle mot %s est reconnu\n",yytext);
+return '{'; }
+"}" {printf("\nle mot %s est reconnu\n",yytext);
+return '}';}
+"Import" {printf("\nle mot %s est reconnu\n",yytext);
+return Import;}
+"Minil.lang" {printf("\nle mot %s est reconnu\n",yytext);
+return Minillang;}
+"Minil.io" {printf("\nle mot %s est reconnu\n",yytext);
+return Minilio;}
+"Public" {printf("\nle mot %s est reconnu\n",yytext);
+return Public;}
+"Protected" {printf("\nle mot %s est reconnu\n",yytext);
+return Protected;}
+"simple" {printf("\nle mot %s est reconnu\n",yytext);
+return simple;}
+"tableaux" {printf("\nle mot %s est reconnu\n",yytext);
+return tableaux;}
+"," {printf("\nle mot %s est reconnu\n",yytext);
+return ',';}
+"CONST" {printf("\nle mot %s est reconnu\n",yytext);
+return CONST;}
+"INTEGER" {printf("\nle mot %s est reconnu\n",yytext);
+return INTEGER;}
+"REAL" {printf("\nle mot %s est reconnu\n",yytext);
+return REAL;}
+"STR" {printf("\nle mot %s est reconnu\n",yytext);
+return STR;}
+":=" {printf("\nle mot %s est reconnu\n",yytext);
+return poivirg ;}
+"For" {printf("\nle mot %s est reconnu\n",yytext);
+return For;}
+"(" {printf("\nle mot %s est reconnu\n",yytext);
+return '(';}
+")" {printf("\nle mot %s est reconnu\n",yytext);
+return ')';}
+";" {printf("\nle mot %s est reconnu\n",yytext);
+return ';';}
+"In" {printf("\nle mot %s est reconnu\n",yytext);
+return In;}
+":" {printf("\nle mot %s est reconnu\n",yytext);
+return ':';}
+"Out" {printf("\nle mot %s est reconnu\n",yytext);
+return Out;}
+"+" {printf("\nle mot %s est reconnu\n",yytext);
+return '+';}
+"-" {printf("\nle mot %s est reconnu\n",yytext);
+return '-';}
+"*" {printf("\nle mot %s est reconnu\n",yytext);
+return '*';}
+"/" {printf("\nle mot %s est reconnu\n",yytext); 
+return '/';}
+"|" {printf("\nle mot %s est reconnu\n",yytext);
+return '|';}
+"<" {printf("\nle mot %s est reconnu\n",yytext);
+return '<';}
+">" {printf("\nle mot %s est reconnu\n",yytext);
+return '>';}
+"=" {printf("\nle mot %s est reconnu\n",yytext);
+return '=';}
+"!=" {printf("\nle mot %s est reconnu\n",yytext);
+return diff;}
+">=" {printf("\nle mot %s est reconnu\n",yytext);
+return supe;}
+"<=" {printf("\nle mot %s est reconnu\n",yytext);
+return infe;}
+"&" {printf("\nle mot %s est reconnu\n",yytext);
+return '&';}
+"!" {printf("\nle mot %s est reconnu\n",yytext);
+return '!';}
+"[" {printf("\nle mot %s est reconnu\n",yytext);
+return '[';}
+"]" {printf("\nle mot %s est reconnu\n",yytext);
+return ']';}
+{idf} {
+if(strlen(yytext)<10)
+{
+printf("\nle mot %s est reconnu\n",yytext);
+yylval.chaine=strdup(yytext);
+return idf;}
+else printf("\n erreur lexical: le mot %s nest pas reconnu\n",yytext);}
+{Int} {
+ if(((atoi(yytext))>-32768) && ((atoi(yytext))<32767)){
+   printf("\nle mot %s est reconnu\n",yytext);
+   yylval.entier=atoi(yytext);
+return Int;}
+else printf("\n erreur lexical: le mot %s nest pas reconnu\n",yytext);
+
+}
+{Float} {printf("\nle mot %s est reconnu\n",yytext);
+yylval.real=atof(yytext);
+return Float;
+}
+{chaine} {printf("\nle mot %s est reconnu\n",yytext);
+yylval.chaine=strdup(yytext);
+return chaine;}
+{comm1} {printf("\ncom1 le mot %s est reconnu\n",yytext);
+yylval.chaine=strdup(yytext);
+return comm1;}
+{comm2} {printf("\ncom2 le mot %s est reconnu\n",yytext);
+yylval.chaine=strdup(yytext);
+return comm2;}
+. {printf("\n erreur lexical: le mot %s nest pas reconnu\n",yytext);
+return 1;}
+
+%%
+int yywrap(void)
+{return 0;}

@@ -1,0 +1,331 @@
+%{
+#include<stdio.h>
+#include "ts.h"
+#include "quad.h"
+extern FILE* yyin;
+liste_ele* tabsymb=NULL;
+int typ;
+int typval;
+int bib1=0;
+int bib2=0;
+int typvalCh=0;
+liste_qd* tete_qd=NULL;
+char chexp[15];
+char opexp[15];
+char op1[15];
+int bit=0;
+int numRes=0;
+int sauvqd=0,indFin=0;
+char deb[15];
+char Ti[15];
+char fin[15];
+int typexp=0,typexp1=0,typexp2=0,typAffec2=0;
+char ress[15];
+float pr1,pr2;
+int opr;
+float res;
+%}
+
+%union
+{char *chaine;
+int entier;
+float real;
+int tail;
+int nat;
+}
+
+%token class Main '{' '}' Import Minillang Minilio Public Protected simple tableaux ',' CONST INTEGER REAL STR For diff supe infe poivirg '(' ')' ';' In ':' Out '+' '-' '*' '/' '<' '>' '=' '&' '|' '!'
+%token <chaine> idf
+%token <entier> Int 
+%token <real> Float
+%token <chaine> comm1
+%token <chaine> comm2
+%token <chaine> chaine
+
+%%
+S:comms Bib 
+Modifi class idf 
+comms
+'{' comms
+comms 
+DeclarationPart
+Main comms
+'{'
+comms
+instrucPart 
+'}'
+comms
+'}' {printf("Fin de Programme correct\n");
+return 0;}
+;
+comms: comm1 comms {printf("commentaire forme1 \n");}
+| {}
+| comm2 comms {}
+;
+Bib: A  {printf("import bibliothèque correcte\n");}
+     |  {}
+
+
+;
+A: Import nomBib ';'  {printf("import bibliothèque correcte\n");}
+|Bib Import nomBib ';'  {}
+ 
+;
+nomBib: Minillang { bib1=1;  printf("bibliothèque existe\n");}
+       |Minilio { bib2=1 ;printf("bibliothèque existe\n");}
+;
+
+Modifi: Public  {printf("modificateur correct\n");}
+| 
+|Protected  {printf("modificateur correct\n");}
+;
+DeclarationPart : Declaration {}
+| {}
+;
+Declaration: Declaration DeclarVar comms  {printf("déclaration acceptée\n");}
+|DeclarVar  comms {printf("déclaration acceptée\n");}
+|Declaration DeclarCONST comms {printf("déclaration acceptée\n");}
+|DeclarCONST comms {printf("déclaration acceptée\n");}
+;
+
+DeclarVar: type VarIdf ';' {}
+;
+
+VarIdf: Varsmp {printf("déclaration acceptée\n");}
+   |Varsmp ',' VarIdf 
+   | Vartab 
+   | Vartab ',' VarIdf
+; 
+
+Varsmp: idf {printf("Délaration variable simple acceptée \n");
+tabsymb=insere(tabsymb,$1,0,typ,1);
+}
+;
+
+Vartab: idf '['Int']' {if(verifie_taille_tab($3) != -1) {
+tabsymb=insere(tabsymb,$1,0,typ,$3);
+printf("Délaration tableau syntaxiquement et sémantiquement correcte \n");
+                                                        }
+else printf("\t Déclaration sémantiquement incorrecte : 'Taille tableau<=0'\n");
+} 
+;
+
+DeclarCONST: Constt 
+ | Constt ',' DeclarCONST
+;
+
+Constt: CONST type idf poivirg valeur ';'{ printf("Instruction Syntaxiquement acceptée \n");
+if( verifie_val_cnst(tabsymb,$3) ==-1)
+printf("Constante déja déclaré , on peut pas changer sa valeur initiale!\n");
+else {printf("déclaration de constante sémantiquemennt correcte\n");
+ tabsymb=insere(tabsymb,$3,1,typ,1);}
+}
+;
+
+instrucPart: instruc comms {}
+|   {printf("pas d'instruction \n");}
+;
+
+instruc: code   { printf("Instruction acceptée \n");}
+|instruc code  {printf("Instruction acceptée \n");}
+;
+
+code: Boucle comms  {printf("Boucle Acc\n");}
+| read comms {printf("Instruction acceptée \n");}
+| write comms {printf("Instruction acceptée \n");}
+| Affec2 comms {printf("Instruction acceptée \n");}
+;
+
+Affec2: idf poivirg expr ';'  { typAffec2 =typexp1;
+if(recherche(tabsymb,$1) == 1){ printf("Idf existe dans tabsymb \n");}
+else { printf("Idf n'existe pas dans tabsymb \n"); return 1 ; }
+if(getnature($1,tabsymb) == 1 ) { printf("Erreur sémantique: On ne peut pas changer la valeur d'une constante\n"); return 1 ;}
+if( isItTab($1, tabsymb)== 1) { printf("Erreur syntaxique dans l'affetation à la réference du tableau \n"); return 1;}
+typ=getype($1,tabsymb);
+printf("type de l'idf avant := est %d\n",typ);
+if(compare(typval,typ)== -1 ) {printf("Affectation incorrecte \n");
+printf("Erreur sémantique: Type valeur affectée ne correspond pas au type de l'idf\n"); return 1 ;}
+else printf("Affectation sémantiquement correcte\n");
+ res=calcul_res(pr1,pr2,opr);
+sprintf(ress,"%f",res);
+tete_qd=insere_qd(":=",chexp," ",ress,tete_qd);
+sauvqd++;
+bit=0;
+}
+| idf '['Int']' poivirg expr ';' {
+if(recherche(tabsymb,$1) == 1){ printf("Idf existe dans tabsymb \n");}
+else { printf("Idf n'existe pas dans tabsymb \n"); return 1 ; }
+if(getnature($1,tabsymb) == 1 ) { printf("Erreur sémantique: On ne peut pas changer la valeur d'une constante\n"); return 1 ;}
+
+if(Vectindi(tabsymb,$1,$3) != 1) {printf("l'indice de la table '%s' est incorrecte\n",$1); return 1;}
+typ=getype($1,tabsymb);
+if(compare(typval,typ)== -1 ) {printf("Affectation incorrecte \n");
+printf("typ val %d typ idf %d",typval,typ);
+printf("Erreur sémantique: Type valeur affectée ne correspond pas au type de l'idf\n"); return 1 ;}
+else printf("Affectation sémantiquement correcte\n");
+printf("Affectation à une référence du tableau juste\n");
+tete_qd=insere_qd(":=",chexp," ",$1,tete_qd);
+ bit=0; sauvqd++;
+}
+
+| idf poivirg chaine ';' { typvalCh=2;
+if(recherche(tabsymb,$1) == 1){ printf("Idf existe dans tabsymb \n");}
+else { printf("Idf n'existe pas dans tabsymb \n"); return 1 ; }
+if(getnature($1,tabsymb) == 1 ) { printf("Erreur sémantique: On ne peut pas changer la valeur d'une constante\n"); return 1 ;}
+if (compareChaine(tabsymb,$1,typvalCh) == -1 ) {printf("Affectation incorrecte \n");
+printf("Erreur sémantique: Type valeur affectée ne correspond pas au type de l'idf\n"); return 1;} 
+ printf("Affectation sémantiquement correcte\n");
+tete_qd=insere_qd(":=",$3," ",$1,tete_qd);
+ bit=0;
+sauvqd++;
+}
+;
+
+Affec: idf poivirg expr {
+ if(recherche(tabsymb,$1) == 1){ printf("Idf existe dans tabsymb \n");}
+else { printf("Idf n'existe pas dans tabsymb \n"); return 1 ; }
+if(getnature($1,tabsymb) == 1 ) { printf("Erreur sémantique: On ne peut pas changer la valeur d'une constante\n"); return 1 ;}
+if( isItTab($1, tabsymb)== 1) { printf("Erreur syntaxique dans l'affetation à la réference du tableau \n"); return 1;}
+
+if(compare(typval,typ)== -1 ) {printf("Affectation incorrecte \n");
+printf("Erreur sémantique: Type valeur affectée ne correspond pas au type de l'idf\n");}
+else printf("Affectation sémantiquement correcte\n");
+res=calcul_res(pr1,pr2,opr);
+sprintf(ress,"%f",res);
+tete_qd=insere_qd(":=",chexp," ",$1,tete_qd);
+bit=0;
+sauvqd++; sprintf(deb,"%d",sauvqd);
+tete_qd=insere_qd("BR",deb," "," ",tete_qd);
+}
+| idf '['Int']' poivirg expr ';' {
+if(recherche(tabsymb,$1) == 1){ printf("Idf existe dans tabsymb \n");}
+else { printf("Idf n'existe pas dans tabsymb \n"); return 1 ; }
+if(getnature($1,tabsymb) == 1 ) { printf("Erreur sémantique: On ne peut pas changer la valeur d'une constante\n"); return 1 ;}
+
+if(Vectindi(tabsymb,$1,$3) != 1 ) {printf("l'indice de la table '%s' est incorrecte\n",$1); return 1;}
+typ=getype($1,tabsymb);
+if(compare(typval,typ)== -1 ) {printf("Affectation incorrecte \n");
+printf("Erreur sémantique: Type valeur affectée ne correspond pas au type de l'idf\n"); return 1 ;}
+else printf("Affectation sémantiquement correcte\n");
+printf("Affectation à une référence du tableau juste\n");}
+
+| idf poivirg chaine ';' {typvalCh=2;
+if(recherche(tabsymb,$1) == 1){ printf("Idf existe dans tabsymb \n");}
+else { printf("Idf n'existe pas dans tabsymb \n"); return 1 ; }
+if(getnature($1,tabsymb) == 1 ) { printf("Erreur sémantique: On ne peut pas changer la valeur d'une constante\n"); return 1 ;}
+
+if(compareChaine(tabsymb,$1,typvalCh) == -1 ) {printf("Affectation incorrecte \n");
+printf("Erreur sémantique: Type valeur affectée ne correspond pas au type de l'idf\n"); return 1;} 
+else printf("Affectation sémantiquement correcte\n");
+tete_qd=insere_qd(":=",$3," ",$1,tete_qd);
+bit=0;
+sauvqd++;
+}
+;  
+op: '+' {opr= 1; sprintf(opexp,"%s","+");  printf("opérateur autorisé\n");}
+  | '-'  {opr=2 ; sprintf(opexp,"%s","-"); printf("opérateur autorisé\n");}
+  | ''   {opr=3; sprintf(opexp,"%s",""); printf("opérateur autorisé\n");}
+  | '|'  {opr=4; sprintf(opexp,"%s","|"); printf("opérateur autorisé\n");}
+  | '='  {sprintf(opexp,"%s","="); printf("opérateur autorisé\n");}
+  | '<'  {sprintf(opexp,"%s","<"); printf("opérateur autorisé\n");}
+  | '>'  {sprintf(opexp,"%s",">"); printf("opérateur autorisé\n");}
+  | infe  {sprintf(opexp,"%s","<="); printf("opérateur autorisé\n");}
+  | supe  {sprintf(opexp,"%s",">="); printf("opérateur autorisé\n");}
+  | diff  {sprintf(opexp,"%s","!="); printf("opérateur autorisé\n");} 
+  | '/' {sprintf(opexp,"%s","/"); printf("Instruction acceptée \n");}
+  | '&'  {sprintf(opexp,"%s","&"); printf("opérateur autorisé\n");}
+  | '!' {sprintf(opexp,"%s","!"); printf("opérateur autorisé\n");}
+;
+
+type: INTEGER { typ=0;  printf("type accepté\n");}
+|REAL { typ=1; printf("type accepté\n");}
+|STR { typ=2;  printf("type accepté\n");}
+;
+valeur: Int { 
+if(bit==1) { 
+sprintf(op1,"%s",chexp);
+} 
+sprintf(chexp,"%d",$1); 
+bit=1;
+pr1=atoi(op1);
+pr2=atoi(chexp);  
+typval=0; 
+printf("valeur de la variable acceptée\n");}
+
+|Float {  if(bit==1){ 
+sprintf(op1,"%s",chexp);}  
+sprintf(chexp,"%f",$1);  
+bit=1;
+pr1=atof(op1);
+pr2=atof(chexp);
+typval=1; 
+printf("valeur de la variable acceptée\n");}
+
+| idf {  if(recherche(tabsymb,$1)==0)  {
+printf("IDF non déclaré,ne peut pas etre utiliser \n"); 
+typval=-1;
+return 1;                              }
+else{ typval=getype($1,tabsymb) ;
+printf("valeur cohérante avec le type de  %s \n",$1);
+if(bit==1) sprintf(op1,"%s",chexp);  
+sprintf(chexp,"%s",$1);
+    } }
+;
+expr: '-' valeur  { typexp= typval; printf("expression appartenant au langage\n"); }
+| valeur  { typexp=typval;  printf("expression appartenant au langage\n"); }
+| expr op expr { typexp1=typexp; typexp2=typval;
+if( typexp1 != typexp2) {
+printf("Type de l'expression non cohérant \n"); return 1;}
+
+printf("expression appartenant au langage\n");
+numRes++; sprintf(Ti,"%d",numRes);
+tete_qd=insere_qd(opexp,op1,chexp,"Ti",tete_qd);} 
+| '(' expr op expr ')'  {printf("expression parenthésée appartenant au langage\n");
+tete_qd=insere_qd(opexp,op1,chexp,"Ti",tete_qd);
+}   
+;
+
+read: In'(' chaine ',' idf ')' ';' {
+if( biblioValid(bib1,bib2) == -1) {printf("Bibliothèque manquante\n"); return 1;}
+if( verifsign($3,$5,tabsymb) == -1 ) {printf("Signe de formatage non cohérent avec le type de l'idf\n"); return 1;}
+if(recherche(tabsymb,$5)==0)  {printf("IDF non déclaré \n"); return 1;}
+else
+printf("opération de lecture correcte\n"); }
+;
+write: Out'(' chaine ',' idf ')' ';' {
+if( biblioValid(bib1,bib2) == -1) {printf("Bibliothèque manquante\n"); return 1;}
+if(recherche(tabsymb,$5)==0)  {printf("IDF non déclaré \n"); return 1;}
+if(verifiSignOut($3,$5,tabsymb) == -1 ) {printf("Opération d'écriture incorrecte\n"); return 1;}
+else printf("opération d'écriture correcte\n");}
+;
+Incr: idf '+''+' { sprintf(chexp,"%s",$1);
+tete_qd=insere_qd("+",chexp,"1"," ",tete_qd); sauvqd++;
+tete_qd=insere_qd(":=",chexp,chexp," ",tete_qd); sauvqd++;
+}
+| idf '-''-' {
+sprintf(chexp,"%s",$1);
+tete_qd=insere_qd("-",chexp,"1"," ",tete_qd); sauvqd++;
+tete_qd=insere_qd(":=",chexp,chexp," ",tete_qd); sauvqd++;
+}
+;
+Boucle: For'('Affec','expr',' Incr')'  '{' instrucPart '}' {printf("Déclaration de Boucle correcte\n"); indFin=sauvqd+ 1;
+sprintf(fin,"%d",indFin);
+tete_qd=insere_qd("BP",fin,"T2"," ",tete_qd);
+}
+;
+%%
+int yyerror(char * msg)
+{printf("%s\n",msg);
+return 1;
+}
+int main()
+{
+yyin=fopen("expprojet.txt","r"); 
+yyparse();
+if( tabsymb != NULL)
+affiche_liste(tabsymb);
+if(tete_qd != NULL){
+//printf(" tete_qd ");
+affiche_listeqd(tete_qd);}
+return 0;
+}
